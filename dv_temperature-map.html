@@ -1,0 +1,337 @@
+<html>
+<head>
+<link href='http://fonts.googleapis.com/css?family=Roboto:300,500' rel='stylesheet' type='text/css'>
+<!-- Link necessary libraries -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+<!-- Chart CSS styling starts -->
+<style>
+body {
+ font-family: Roboto;
+ font-size: 11pt;
+ font-weight:300;
+ color:#334f87;
+}
+.temp {
+font-weight: 500;
+color:#334f87;
+}
+
+.input{
+width: 120px;
+margin-right: 20px;
+padding: 14px;
+text-align: center;
+display: inline-block;
+font-size:1.1em;
+font-weight:500;
+border: 1px solid #ffffff;
+border-radius: 4px;
+text-shadow: 1px 1px #fff, 
+			-1px -1px #fff;
+box-shadow: 0px 0px 0px 1px #b3b3b3,
+			0px 1px 0px 1px #ddd,
+			0px 2px 0px 1px #b3b3b3;
+background: -webkit-linear-gradient(180deg, #fefefe, #eeeeee); /* For Safari 5.1 to 6.0 */
+background: -o-linear-gradient(180deg, #fefefe, #eeeeee); /* For Opera 11.1 to 12.0 */
+background: -moz-linear-gradient(180deg,  #fefefe, #eeeeee); /* For Firefox 3.6 to 15 */
+background: linear-gradient(180deg,  #fefefe, #eeeeee); /* Standard syntax */
+}
+
+.input:hover {
+text-shadow: 1px 1px #fff, 
+			-1px -1px #fff;
+transform: translate(0px,-1px);
+box-shadow: 0px 0px 0px 1px #b3b3b3,
+			0px 2px 0px 1px #ddd,
+			0px 3px 0px 1px #b3b3b3;
+background: -webkit-linear-gradient(180deg, #fefefe, #eeeeee); /* For Safari 5.1 to 6.0 */
+background: -o-linear-gradient(180deg, #fefefe, #eeeeee); /* For Opera 11.1 to 12.0 */
+background: -moz-linear-gradient(180deg,  #fefefe, #eeeeee); /* For Firefox 3.6 to 15 */
+background: linear-gradient(180deg, #fefefe, #eeeeee); /* Standard syntax */
+}
+
+.input:active, .input:visited, #active {
+border: 1px solid #ccc;
+color:#666;
+text-shadow: 1px 1px #ddd, 
+			-1px -1px #ddd;
+transform: translate(0px,2px);
+box-shadow: 0px 0px 0px 1px #b3b3b3,
+			0px -1px 0px 1px #ccc,
+			inset 0px 0px 16px #bbb;
+background: -webkit-linear-gradient(180deg, #d9d9d9, #d9d9d9); /* For Safari 5.1 to 6.0 */
+background: -o-linear-gradient(180deg, #d9d9d9, #d9d9d9); /* For Opera 11.1 to 12.0 */
+background: -moz-linear-gradient(180deg, #d9d9d9, #d9d9d9); /* For Firefox 3.6 to 15 */
+background: linear-gradient(180deg, #d9d9d9, #d9d9d9); /* Standard syntax */
+}
+
+
+.months{
+position: relative;
+}
+.values {
+overflow: visible;
+}
+.tip {
+position: absolute;
+margin:26px 0 20px 12px;
+background-color:#fff;
+text-align:left;
+font-size: .8em;
+z-index:5;
+}
+.tooltips {
+position:relative;
+}
+.toolwrap {
+position: absolute;
+left:0;
+right:0;
+}
+a {
+color: #ff0000;
+}
+p {
+color: #232323;
+}
+</style>
+<!-- Chart CSS styling starts -->
+
+</head>
+<body>
+
+<div style="width: 80%; padding: 20px 10% 20px 10%;">
+<h2>2014 San Francisco & Pittsburgh Temperature Map</h2>
+<p>Data collected from : <a href="http://w2.weather.gov/climate/">http://w2.weather.gov/climate/</a> and
+<a href="http://www.wunderground.com/history">http://www.wunderground.com/history</a></p>
+<p>Click button below to compare the temperature maps of each city.
+
+	<div id="inactive" class="input" name="pitButton" value="Pittsburgh" onclick="updatePitData()" />
+		Pittsburgh
+	</div>
+	<div id="active" class="input" name="sanButton" value="San Francisco" onclick="updateSanData()" />
+		San Francisco
+	</div>
+
+</div>
+
+<div style="width:1024px;margin:0 auto; position:relative;">
+	<div class="wrapper" style="width:1024px;">
+		<div class="toolwrap" style="width:1024px;overflow:visible;">
+
+		</div>
+	</div>
+</div>
+<div style="width: 80%; padding: 20px 10% 20px 10%;">
+	<p>Designed and coded by Minjong Lee </p>
+</div>
+<!-- D3 Chart scripting starts -->
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+<script>
+var w = 300,
+	h = 300,
+	m = [8, 8, 8, 8],
+	r = 40,
+	width = w - m[1] - m[3],
+	height = h - m[0] - m[2],
+	barHeight = 12
+
+var dayAngle = 360/31,
+	speed = 10,
+	tempRegion = [-9,95]
+
+var xRange = d3.scale.linear()
+			.range([0,width/2-r])
+
+var color = d3.scale.linear()
+			.range(['#5ff0ff', '#ff6363']),
+	monthColor = d3.scale.ordinal()
+			.range(["#ffff00", "#b5ff00","#00ff91", "#00fff2", "#00e1ff", "#00aaff","#ffff00", "#b5ff00","#00ff91", "#00fff2", "#00e1ff", "#00aaff"])
+
+color.domain(tempRegion);
+xRange.domain(tempRegion);
+
+var timeFormat = d3.time.format('%m/%d/%Y'),
+	parseTime = timeFormat.parse,
+	monthFormat = d3.time.format('%B');
+
+d3.csv('2014_san_temp.csv', function(error, data) {
+	data.forEach(function(d) {
+		d.Date = parseTime(d.Date);
+		d.Max = +d.Max;
+		d.Min = +d.Min;		
+		});
+
+	// Group data based on Month
+	var tempPerMonth = d3.nest()
+			.key(function(d) {return monthFormat(d.Date);})
+			.entries(data);
+
+	var svg = d3.select('.wrapper').selectAll('div.months')
+			.data(tempPerMonth)
+		.enter().append('div')
+			.attr('class', function(d) {return 'months ' + d.key;})
+			.style('display', 'inline-block')
+			.style('width', width + m[1] + m[3]+'px')
+			.style('height', height + m[0] + m[2]+'px')
+		.append('svg:svg')
+			.attr('width', width + m[1] + m[3])
+			.attr('height', height + m[0] + m[2])
+		.append('svg:g')
+			.attr('transform', 'translate(' + m[3] + ',' + m[0] + ')');
+
+	// Write name of the month in the center of the chart
+	svg.append('svg:text')
+		.attr('class', 'monthname')
+		.attr('text-anchor', 'middle')
+		.attr('dx', width/2)
+		.attr('dy', height/2 + 8)//8 is half of body font size
+		.attr('font-weight', 500)
+		.attr('fill', '#232323')//function(d) {return monthColor(d.key);}
+		.text(function(d) { return d.key });
+
+	// Set up a wrapper for the whole tooltips
+	var div = d3.select('.toolwrap').selectAll('div.tooltips')
+			.data(tempPerMonth)
+		.enter().append('div')
+			.attr('class', 'tooltips')
+			.style('display', 'inline-block')
+			.style('width',  width + m[1] + m[3] + 'px')
+			.style('height', height + m[0] + m[2] + 'px')
+			.append('div');
+
+	// Set up individual day's tooltip
+	var tips = div.selectAll('div.tip')
+			.data(function(d) {return d.values;})
+		.enter().append('div')
+			.attr('class', 'tip')
+			.attr('data-name', function(d) {return timeFormat(d.Date);})
+			.style('opacity', 0)
+			.style('left', w/2 -r)
+			.style('top', h/2 -r);
+
+	// Add two bars of each Min and Max temperature value of the day
+	var valueSvg = svg.selectAll('svg.values')
+			.data(function(d) {return d.values;})
+		.enter().append('svg')
+			.attr('class', 'values')
+			.attr('data-name', function(d) {return timeFormat(d.Date);});
+
+	// Add bars of Maximum temperature with on mouseover and mouseout
+	valueSvg.append('svg:rect')
+			.attr('x', width/2 + r)
+			.attr('y', height/2)
+			.attr('stroke', 'white')
+			.attr('height', barHeight)
+			.attr('data-name', function(d) {return timeFormat(d.Date);})
+			.attr('transform', function(d, i) {return 'rotate(' + dayAngle * i + ',' + width/2 + ',' + ((height/2)+(barHeight/2)) + ')'})
+			.attr('fill', function(d, i) {return color(d.Max);})
+			.attr('class', 'maxtemp')
+			.attr('width', function(d, i) {return xRange(d.Max);})
+			.on('mouseover', function(d) {
+				var callDate = $(this).attr('data-name');
+				var thisMonth = monthFormat(parseTime(callDate));
+				$('.tooltips').find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed);
+				$('.' + thisMonth).find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed);
+				$('.' + thisMonth).find('.values:not([data-name="' + callDate + '"])').animate({opacity: .4}, speed);
+				$('text.monthname').find('[data-name="' + callDate + '"]').animate({opacity:0},speed);
+				tips.html(function(d) {return callDate +'<span class="temp"><br>Max: ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
+			})
+			.on('mouseout', function(d) {
+				var callDate = $(this).attr('data-name');
+				console.log(callDate);
+				var thisMonth = monthFormat(parseTime(callDate));
+				$('.tooltips').find('[data-name="' + callDate + '"]').animate({opacity: 0}, speed/5);
+				$('.' + thisMonth).find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed/5);
+				$('.' + thisMonth).find('.values:not([data-name="' + callDate + '"])').animate({opacity: 1}, speed/5);
+				$('text.monthname').find('[data-name="' + callDate + '"]').animate({opacity:1},speed);
+			});
+
+
+	// Add bars of Minimum temperature with on mouseover and mouseout
+	valueSvg.append('svg:rect')
+			.attr('x', width/2 + r)
+			.attr('y', height/2)
+			.attr('stroke', 'white')
+			.attr('height', barHeight)
+			.attr('data-name', function(d) {return timeFormat(d.Date);})
+			.attr('transform', function(d, i) {return 'rotate(' + dayAngle * i + ',' + width/2 + ',' + ((height/2)+(barHeight/2)) + ')'})
+			.attr('fill', function(d, i) {return color(d.Min);})
+			.attr('class', 'mintemp')
+			.attr('width', function(d, i) {return xRange(d.Min);})
+			.on('mouseover', function(d) {
+				var callDate = $(this).attr('data-name');
+				var thisMonth = monthFormat(parseTime(callDate));
+				$('.tooltips').find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed);
+				$('.' + thisMonth).find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed);
+				$('.' + thisMonth).find('.values:not([data-name="' + callDate + '"])').animate({opacity: .4}, speed);
+
+				tips.html(function(d) {return callDate +'<span class="temp"><br>Max:  ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
+			})
+			.on('mouseout', function(d) {
+				var callDate = $(this).attr('data-name');
+				console.log(callDate);
+				var thisMonth = monthFormat(parseTime(callDate));
+				$('.tooltips').find('[data-name="' + callDate + '"]').animate({opacity: 0}, speed/5);
+				$('.' + thisMonth).find('[data-name="' + callDate + '"]').animate({opacity: 1}, speed/5);
+				$('.' + thisMonth).find('.values:not([data-name="' + callDate + '"])').animate({opacity: 1}, speed/5);
+			});
+});
+
+//Update the data to Pittsburgh
+function updatePitData() {
+	d3.csv('2014_pittsburgh_temp', function(error, dataset) {
+		dataset.forEach(function(d) {
+			d.Date = parseTime(d.Date);
+			d.Max = +d.Max;
+			d.Min = +d.Min;		
+			});		
+		console.log(dataset[0].Max);
+
+	d3.selectAll('rect.maxtemp').data(dataset).transition()
+		.attr('width', function(d) {return xRange(d.Max) + 'px';})
+		.attr('fill', function(d) {return color(d.Max);});
+
+	d3.selectAll('rect.mintemp').data(dataset).transition()
+		.attr('width', function(d) {return xRange(d.Min) + 'px';})
+		.attr('fill', function(d) {return color(d.Min);});
+
+	d3.selectAll('div.tip').data(dataset).html(function(d) {return d.Date +'<span class="temp"><br>Max:  ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
+	
+	$('div[name="pitButton"]').attr('id', 'active');
+	$('div[name="sanButton"]').removeAttr('id', 'active');
+});
+};
+
+function updateSanData() {
+	d3.csv('2014_san-francisco_temp', function(error, dataset) {
+		dataset.forEach(function(d) {
+			d.Date = parseTime(d.Date);
+			d.Max = +d.Max;
+			d.Min = +d.Min;		
+			});		
+		console.log(dataset[0].Max);
+
+	d3.selectAll('rect.maxtemp').data(dataset).transition()
+		.attr('width', function(d) {return xRange(d.Max) + 'px';})
+		.attr('fill', function(d) {return color(d.Max);});
+
+	d3.selectAll('rect.mintemp').data(dataset).transition()
+		.attr('width', function(d) {return xRange(d.Min) + 'px';})
+		.attr('fill', function(d) {return color(d.Min);});
+
+	d3.selectAll('div.tip').data(dataset).html(function(d) {return d.Date +'<span class="temp"><br>Max:  ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
+
+	$('div[name="pitButton"]').removeAttr('id', 'active');
+	$('div[name="sanButton"]').attr('id', 'active');
+
+
+});
+};
+
+</script>
+<!-- D3 Chart scripting ends -->
+</body>
+</html>
