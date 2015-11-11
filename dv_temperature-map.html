@@ -18,16 +18,8 @@ font-weight: 500;
 color:#334f87;
 }
 
-.input{
-width: 120px;
-margin-right: 20px;
-padding: 14px;
-text-align: center;
-display: inline-block;
-font-size:1.1em;
-font-weight:500;
+#inactive{
 border: 1px solid #ffffff;
-border-radius: 4px;
 text-shadow: 1px 1px #fff, 
 	-1px -1px #fff;
 box-shadow: 0px 0px 0px 1px #b3b3b3,
@@ -39,7 +31,7 @@ background: -moz-linear-gradient(180deg,  #fefefe, #eeeeee); /* For Firefox 3.6 
 background: linear-gradient(180deg,  #fefefe, #eeeeee); /* Standard syntax */
 }
 
-.input:hover {
+#inactive:hover {
 text-shadow: 1px 1px #fff, 
 	-1px -1px #fff;
 transform: translate(0px,-1px);
@@ -52,8 +44,16 @@ background: -moz-linear-gradient(180deg,  #fefefe, #eeeeee); /* For Firefox 3.6 
 background: linear-gradient(180deg, #fefefe, #eeeeee); /* Standard syntax */
 }
 
-.input:active, .input:visited, #active {
+#inactive:active, .input, #active {
+width: 120px;
+margin-right: 20px;
+padding: 14px;
+text-align: center;
+display: inline-block;
+font-size:1.1em;
+font-weight:500;
 border: 1px solid #ccc;
+border-radius: 4px;
 color:#666;
 text-shadow: 1px 1px #ddd, 
 	-1px -1px #ddd;
@@ -158,7 +158,7 @@ var timeFormat = d3.time.format('%m/%d/%Y'),
 	parseTime = timeFormat.parse,
 	monthFormat = d3.time.format('%B');
 
-d3.csv('2014_san_temp.csv', function(error, data) {
+d3.csv('2014_san-francisco_temp.csv', function(error, data) {
 	data.forEach(function(d) {
 		d.Date = parseTime(d.Date);
 		d.Max = +d.Max;
@@ -283,7 +283,7 @@ d3.csv('2014_san_temp.csv', function(error, data) {
 
 //Update the data to Pittsburgh
 function updatePitData() {
-	d3.csv('2014_pittsburgh_temp', function(error, dataset) {
+	d3.csv('2014_pittsburgh_temp.csv', function(error, dataset) {
 		dataset.forEach(function(d) {
 			d.Date = parseTime(d.Date);
 			d.Max = +d.Max;
@@ -301,13 +301,15 @@ function updatePitData() {
 
 	d3.selectAll('div.tip').data(dataset).html(function(d) {return d.Date +'<span class="temp"><br>Max:  ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
 	
-	$('div[name="pitButton"]').attr('id', 'active');
+	$('div[name="pitButton"]').removeAttr('id', 'inactive');
 	$('div[name="sanButton"]').removeAttr('id', 'active');
-});
+	$('div[name="pitButton"]').attr('id', 'active');
+	$('div[name="sanButton"]').attr('id', 'inactive');
+	});
 };
 
 function updateSanData() {
-	d3.csv('2014_san-francisco_temp', function(error, dataset) {
+	d3.csv('2014_san-francisco_temp.csv', function(error, dataset) {
 		dataset.forEach(function(d) {
 			d.Date = parseTime(d.Date);
 			d.Max = +d.Max;
@@ -325,8 +327,11 @@ function updateSanData() {
 
 	d3.selectAll('div.tip').data(dataset).html(function(d) {return d.Date +'<span class="temp"><br>Max:  ' + d.Max + '&#8457;<br>Min: ' + d.Min + '&#8457;</span>';});
 
+	$('div[name="sanButton"]').removeAttr('id', 'inactive');
 	$('div[name="pitButton"]').removeAttr('id', 'active');
 	$('div[name="sanButton"]').attr('id', 'active');
+	$('div[name="pitButton"]').attr('id', 'inactive');
+
 
 
 });
